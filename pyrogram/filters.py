@@ -172,6 +172,16 @@ me = create(me_filter)
 
 # endregion
 
+async def status_filter(_, __, m: Message):
+    return True if m.from_user.status == "online" else False
+
+
+staus = create(status_filter)
+"""Filter your status i.e online | offline"""
+
+
+# endregion
+
 # region bot_filter
 async def bot_filter(_, __, m: Message):
     return bool(m.from_user and m.from_user.is_bot)
