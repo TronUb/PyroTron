@@ -25,7 +25,6 @@ import platform
 import re
 import shutil
 import sys
-import tempfile
 from concurrent.futures.thread import ThreadPoolExecutor
 from hashlib import sha256
 from importlib import import_module
@@ -486,7 +485,10 @@ class Client(Methods):
 
     async def handle_updates(self, updates):
         if isinstance(updates, (raw.types.Updates, raw.types.UpdatesCombined)):
-            is_min = (await self.fetch_peers(updates.users)) or (await self.fetch_peers(updates.chats))
+            is_min = any((
+                await self.fetch_peers(updates.users),
+                await self.fetch_peers(updates.chats),
+            ))
 
             users = {u.id: u for u in updates.users}
             chats = {c.id: c for c in updates.chats}
@@ -726,15 +728,21 @@ class Client(Methods):
 
     async def handle_download(self, packet):
         file_id, directory, file_name, in_memory, file_size, progress, progress_args = packet
-        file = BytesIO() if in_memory else tempfile.NamedTemporaryFile("wb", delete=False)
+
+        os.makedirs(directory, exist_ok=True) if not in_memory else None
+        temp_file_path = os.path.abspath(re.sub("\\\\", "/", os.path.join(directory, file_name))) + ".temp"
+        file = BytesIO() if in_memory else open(temp_file_path, "wb")
 
         try:
             async for chunk in self.get_file(file_id, file_size, 0, 0, progress, progress_args):
                 file.write(chunk)
-        except pyrogram.StopTransmission:
+        except BaseException as e:
             if not in_memory:
                 file.close()
-                os.remove(file.name)
+                os.remove(temp_file_path)
+
+            if isinstance(e, asyncio.CancelledError):
+                raise e
 
             return None
         else:
@@ -742,10 +750,9 @@ class Client(Methods):
                 file.name = file_name
                 return file
             else:
-                file_path = os.path.abspath(re.sub("\\\\", "/", os.path.join(directory, file_name)))
-                os.makedirs(directory, exist_ok=True)
                 file.close()
-                shutil.move(file.name, file_path)
+                file_path = os.path.splitext(temp_file_path)[0]
+                shutil.move(temp_file_path, file_path)
                 return file_path
 
     async def get_file(
