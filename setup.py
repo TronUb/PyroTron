@@ -76,7 +76,7 @@ setup(
         "Tracker": "https://github.com/beastzx18/pyrolite/issues",
         "Community": "https://t.me/pyrolite",
         "Source": "https://github.com/beastzx18/pyrolite",
-        "Documentation": "empty",
+        "Documentation": "https://docs.pyrogram.org",
     },
     python_requires="~=3.7",
     package_data={
