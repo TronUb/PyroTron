@@ -27,6 +27,7 @@ from .messages import Messages
 from .password import Password
 from .users import Users
 from .utilities import Utilities
+from .phone import Phone
 
 
 class Methods(
@@ -41,5 +42,6 @@ class Methods(
     Decorators,
     Utilities,
     InviteLinks,
+    Phone
 ):
     pass
